@@ -105,13 +105,19 @@ documents/
      - Any preprocessing you did before chunking (e.g., stripping HTML, removing headers)
      - What your final chunk count was across all documents -->
 
-**Chunk size:**
+**Chunk size:** 1,600 characters (~400 tokens at ~4 chars/token)
 
-**Overlap:**
+**Overlap:** 200 characters (~50 tokens)
 
 **Why these choices fit your documents:**
 
-**Final chunk count:**
+The corpus has two structurally different document types. The three GitHub guides are long-form, section-structured Markdown: an H2 section like "Arrays" or "Caching" can span hundreds of lines, so a purely character-based split would cut across headings mid-thought. The splitter uses a recursive boundary-aware strategy — it tries `\n## `, then `\n### `, then `\n\n`, then `\n`, then `. ` in that order before falling back to raw character splits — so structural boundaries are respected as long as a section fits within the limit.
+
+The Reddit posts are conversational and paragraph-driven. Each paragraph typically expresses one opinion or tip (100–200 tokens), so a 1,600-character ceiling naturally captures 1–3 paragraphs per chunk — focused enough to embed a single idea, large enough to avoid over-fragmentation.
+
+The 200-character overlap addresses a common Reddit pattern: an engineer sets up context in one paragraph ("I bombed every Google loop for two years...") and delivers the actionable advice in the next. Without overlap, a chunk boundary at that seam yields two incomplete thoughts. 200 characters (~2 sentences) carries enough setup without duplicating large amounts of guide text across neighbors.
+
+**Final chunk count:** Run `python chunk_and_embed.py` — the script prints per-file chunk counts and a total at the end. (Fill this in after running.)
 
 ---
 
@@ -123,9 +129,18 @@ documents/
      Consider: context length limits, multilingual support, accuracy on domain-specific text,
      latency, and local vs. API-hosted. -->
 
-**Model used:**
+**Model used:** `all-MiniLM-L6-v2` via `sentence-transformers` (local, no API key required)
 
 **Production tradeoff reflection:**
+
+`all-MiniLM-L6-v2` runs entirely on CPU, costs nothing, and keeps data local — strong defaults for a class project. Its 256-token context window is tight for 400-token chunks, but sentence-transformers truncates gracefully, and the first 256 tokens of a passage carry most of its semantic content.
+
+For a production system I would weigh four tradeoffs:
+
+- **Domain accuracy:** This model was trained on general text. Interview jargon (FAANG, TC, YOE, OA, LC hard) may not be tightly clustered in its embedding space. A bi-encoder fine-tuned on Stack Overflow or tech Q&A would improve precision on domain vocabulary, at the cost of a more complex training pipeline.
+- **Context length:** OpenAI `text-embedding-3-small` supports 8,191 tokens. That would allow larger chunks for the GitHub guides — capturing a full subsection in one vector rather than splitting it — and would eliminate the truncation problem entirely.
+- **Cost vs. privacy:** API-hosted embeddings (OpenAI, Cohere) add per-token cost and send document text to a third party. For a guide built from public GitHub repos and Reddit that tradeoff is acceptable, but for a corpus of internal docs or proprietary interviews it would not be.
+- **Multilingual support:** Not relevant here, but if the guide needed to serve non-English speakers, `multilingual-e5-large` or Cohere's `embed-multilingual-v3.0` would be the switch without rewriting the rest of the pipeline.
 
 ---
 
@@ -140,7 +155,35 @@ documents/
 
 **System prompt grounding instruction:**
 
+```
+You are a tech job interview advisor. You must follow these rules without exception:
+
+1. Answer using ONLY information found in the context passages below.
+   Never draw on your training data or general knowledge.
+2. After every factual claim, cite the source file in brackets.
+   Example: "Practice arrays and linked lists first [coding_interview_university.txt]."
+3. If the context passages do not contain enough information to answer the question,
+   respond exactly: "My sources don't cover this — I can only answer based on the
+   retrieved documents."
+4. End every response with a "Sources:" section listing, one per line,
+   the filename and URL of each document you drew from.
+```
+
+Rule 1 prevents the model from using its training knowledge. Rule 3 gives it an explicit safe exit so it doesn't hallucinate when retrieval misses. Both rules are stated as "must" and "without exception" rather than "try to" — softer language leaves room for the model to rationalize reaching beyond the context.
+
+The retrieved chunks are formatted with a file name and source URL header before each passage so the model can write accurate citations without fabricating them:
+
+```
+[Passage 1]
+File: coding_interview_university.txt
+Source URL: https://github.com/jwasham/coding-interview-university
+
+<chunk text>
+```
+
 **How source attribution is surfaced in the response:**
+
+Two mechanisms work together. First, the model is instructed to add `[filename.txt]` inline after every claim, making citations part of the prose. Second, `app.py` independently extracts the `filename` and `source` metadata from every retrieved chunk and renders them as a separate "Retrieved sources" panel in the Gradio UI — so attribution is visible even if the model's inline citation is imprecise. The UI panel also shows the cosine similarity score for each source so it's clear how confident the retrieval was.
 
 ---
 
@@ -210,12 +253,12 @@ documents/
 
 **Instance 1**
 
-- *What I gave the AI:*
-- *What it produced:*
-- *What I changed or overrode:*
+- *What I gave the AI:* The Chunking Strategy section from planning.md (chunk size 1,600 chars / 200 char overlap, recursive boundary-aware splitting rationale, two-document-type reasoning) and the Architecture diagram showing the five pipeline stages.
+- *What it produced:* `chunk_and_embed.py` with `_recursive_split()` using the separator priority list `["\n## ", "\n### ", "\n\n", "\n", ". "]`, `_add_overlap()` that prepends the tail of the previous chunk, and a `main()` that drops and rebuilds the ChromaDB collection on each run.
+- *What I changed or overrode:* The initial draft used `text.split(sep)` which consumed the separator and silently dropped heading markers from chunk text. I changed it to `re.split(re.escape(sep), text)` and verified that H2 headings survived into their chunk's text so the embedding would include the section title.
 
 **Instance 2**
 
-- *What I gave the AI:*
-- *What it produced:*
-- *What I changed or overrode:*
+- *What I gave the AI:* The grounding rules from the AI Tool Plan section ("answer using ONLY information in context passages, cite filename inline, safe exit when context is insufficient") and the Evaluation Plan's 5 test questions as example queries to design the interface around.
+- *What it produced:* `app.py` with the four-rule system prompt, a `answer_question()` function that returns `(answer, sources_markdown)` as separate outputs, and a two-column Gradio layout with an answer box and a retrieved-sources panel.
+- *What I changed or overrode:* The first draft set `temperature=0.7`. I lowered it to `0.2` because grounded generation should be deterministic — higher temperature increases the chance the model rephrases retrieved facts in ways that subtly introduce inaccuracies. I also added the similarity score to the sources panel (not in the original output) so it's easy to spot when retrieval confidence is low during evaluation.
