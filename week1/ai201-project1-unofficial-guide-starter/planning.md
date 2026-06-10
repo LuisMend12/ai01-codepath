@@ -167,3 +167,37 @@ For a real deployed system I would weigh:
 - **Input:** The grounding rule from this planning.md ("answer using ONLY information found in context"), the Evaluation Plan's 5 test questions, and the Architecture diagram's Generation stage
 - **Expected output:** `app.py` Gradio UI with a question text box, answer output box, and a retrieved-sources panel; system prompt that cites filenames inline and ends with a Sources section; temperature set to 0.2 to reduce hallucination risk
 - **Verification:** Run all 5 test questions from the Evaluation Plan; confirm each answer contains at least one `[filename]` inline citation and ends with a populated Sources section; confirm the model says "My sources don't cover this" when asked an off-topic question (e.g., "What is the capital of France?")
+
+---
+
+## Stretch Feature: Hybrid Search
+
+<!-- Updated before implementation, per the assignment instructions. -->
+
+**Approach:** Add a BM25 keyword retriever alongside the existing ChromaDB semantic
+retriever, and combine the two with Reciprocal Rank Fusion (RRF). RRF is chosen over
+a weighted-score blend because BM25 scores and cosine distances live on different
+scales — RRF only needs each retriever's *ranking*, not a comparable score.
+
+**Why this corpus benefits:** Interview-prep text is full of exact tokens that
+matter — "two-pointer", "system design", "FAANG", specific company names, LeetCode
+problem names. Semantic search can miss a chunk that uses the exact term the user
+searched for if the surrounding context pulls the embedding elsewhere. BM25 catches
+those exact-token matches; semantic search catches paraphrases ("salary negotiation"
+vs. "how to ask for more money"). Combining both should be a strict improvement over
+either alone for this domain.
+
+**Implementation plan:**
+- At startup, pull all chunks out of the existing ChromaDB collection (`collection.get()`)
+  and build a `BM25Okapi` index over their tokenized text — no separate index file needed.
+- For each query, compute two ranked id lists (semantic top-15, BM25 top-15) and fuse
+  them with RRF (`score = sum(1 / (60 + rank + 1))`), taking the fused top-5.
+- Add a Gradio `Radio` toggle ("Hybrid" vs "Semantic only") so the same query can be
+  run both ways without restarting the app.
+- Tag each retrieved source in the UI with which retriever(s) surfaced it
+  (`semantic`, `keyword`, or both) so the comparison is visible at a glance.
+
+**Comparison methodology:** Re-run the 5 Evaluation Plan questions in both modes and
+record, for each: which sources were retrieved, whether the set differed between modes,
+and whether the final answer changed. Document findings in README.md under
+"Stretch Feature: Hybrid Search".

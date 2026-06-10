@@ -1,0 +1,159 @@
+=== Chunk 41 | id=chunk_41 | file=system_design_primer.txt | chunk_index=7 | len=1568 chars ===
+expected read to write ratio?
+
+### Step 2: Create a high level design
+
+Outline a high level design with all important components.
+
+* Sketch the main components and connections
+* Justify your ideas ### Step 3: Design core components
+
+Dive into details for each core component.  For example, if you were asked to [design a url shortening service](solutions/system_design/pastebin/README.md), discuss:
+
+* Generating and storing a hash of the full url
+    * [MD5](solutions/system_design/pastebin/README.md) and [Base62](solutions/system_design/pastebin/README.md)
+    * Hash collisions
+    * SQL or NoSQL
+    * Database schema
+* Translating a hashed url to the full url
+    * Database lookup
+* API and object-oriented design
+
+### Step 4: Scale the design
+
+Identify and address bottlenecks, given the constraints.  For example, do you need the following to address scalability issues?
+
+* Load balancer
+* Horizontal scaling
+* Caching
+* Database sharding
+
+Discuss potential solutions and trade-offs.  Everything is a trade-off.  Address bottlenecks using [principles of scalable system design](#index-of-system-design-topics).
+
+### Back-of-the-envelope calculations
+
+You might be asked to do some estimates by hand.  Refer to the [Appendix](#appendix) for the following resources:
+
+* [Use back of the envelope calculations](http://highscalability.com/blog/2011/1/26/google-pro-tip-use-back-of-the-envelope-calculations-to-choo.html)
+* [Powers of two table](#powers-of-two-table)
+* [Latency numbers every programmer should know](#latency-numbers-every-programmer-should-know)
+
+=== Chunk 19 | id=chunk_19 | file=coding_interview_university.txt | chunk_index=19 | len=1150 chars ===
+for scale. If you use a pen, you'll wish you could erase.
+Gets messy quickly. **I use a pencil and eraser.**
+
+**Coding question practice is not about memorizing answers to programming problems.** ## Coding Problems
+
+Don't forget your key coding interview books [here](#interview-prep-books).
+
+Solving Problems:
+- [How to Find a Solution](https://www.topcoder.com/thrive/articles/How%20To%20Find%20a%20Solution)
+- [How to Dissect a Topcoder Problem Statement](https://www.topcoder.com/thrive/articles/How%20To%20Dissect%20a%20Topcoder%20Problem%20Statement%20Content)
+
+Coding Interview Question Videos:
+- [IDeserve (88 videos)](https://www.youtube.com/playlist?list=PLamzFoFxwoNjPfxzaWqs7cZGsPYy0x_gI)
+- [Tushar Roy (5 playlists)](https://www.youtube.com/user/tusharroy2525/playlists?shelf_id=2&view=50&sort=dd)
+    - Super for walkthroughs of problem solutions
+- [Nick White - LeetCode Solutions (187 Videos)](https://www.youtube.com/playlist?list=PLU_sdQYzUj2keVENTP0a5rdykRSgg9Wp-)
+    - Good explanations of the solution and the code
+    - You can watch several in a short time
+- [FisherCoder - LeetCode Solutions](https://youtube.com/FisherCoder)
+
+=== Chunk 50 | id=chunk_50 | file=system_design_primer.txt | chunk_index=16 | len=1408 chars ===
+master-master
+
+This topic is further discussed in the [Database](#database) section:
+
+* [Master-slave replication](#master-slave-replication)
+* [Master-master replication](#master-master-replication) ### Availability in numbers
+
+Availability is often quantified by uptime (or downtime) as a percentage of time the service is available.  Availability is generally measured in number of 9s--a service with 99.99% availability is described as having four 9s.
+
+#### 99.9% availability - three 9s
+
+| Duration            | Acceptable downtime|
+
+| Downtime per year   | 8h 45min 57s       |
+| Downtime per month  | 43m 49.7s          |
+| Downtime per week   | 10m 4.8s           |
+| Downtime per day    | 1m 26.4s           |
+
+#### 99.99% availability - four 9s
+
+| Duration            | Acceptable downtime|
+
+| Downtime per year   | 52min 35.7s        |
+| Downtime per month  | 4m 23s             |
+| Downtime per week   | 1m 5s              |
+| Downtime per day    | 8.6s               |
+
+#### Availability in parallel vs in sequence
+
+If a service consists of multiple components prone to failure, the service's overall availability depends on whether the components are in sequence or in parallel.
+
+###### In sequence
+
+Overall availability decreases when two components with availability   1
+
+Pinterest, for example, could have the following microservices: user profile, follower, feed, search, photo upload, etc.
+
+=== Chunk 6 | id=chunk_6 | file=coding_interview_university.txt | chunk_index=6 | len=1650 chars ===
+of associative arrays, but I never created data structures from scratch.
+
+It's a long plan. It may take you months. If you are familiar with a lot of this already it will take you a lot less time. ## How to use it
+
+Everything below is an outline, and you should tackle the items in order from top to bottom.
+
+I'm using GitHub's special markdown flavor, including tasks lists to track progress.
+  - [More about GitHub-flavored markdown](https://guides.github.com/features/mastering-markdown/#GitHub-flavored-markdown)
+
+### If you don't want to use git
+
+On this page, click the Code button near the top, then click "Download ZIP". Unzip the file and you can work with the text files.
+
+If you're open in a code editor that understands markdown, you'll see everything formatted nicely.
+
+### If you're comfortable with git
+
+Create a new branch so you can check items like this, just put an x in the brackets: [x]
+
+1. ***Fork the GitHub repo:*** `https://github.com/jwasham/coding-interview-university` by clicking on the Fork button.
+
+1. Clone to your local repo:
+
+    ```bash
+    git clone https://github.com/ /coding-interview-university.git
+    cd coding-interview-university
+    git remote add upstream https://github.com/jwasham/coding-interview-university.git
+    git remote set-url --push upstream DISABLE  # so that you don't push your personal progress back to the original repo
+    ```
+
+1. Mark all boxes with X after you completed your changes:
+
+    ```bash
+    git commit -am "Marked personal progress"
+    git pull upstream main  # keep your fork up-to-date with changes from the original repo
+
+    git push # just pushes to your fork
+    ```
+
+=== Chunk 9 | id=chunk_9 | file=coding_interview_university.txt | chunk_index=9 | len=1466 chars ===
+you do,
+but you'll also need to find a language that you can use to study computer science concepts.
+
+Preferably the language would be the same, so that you only need to be proficient in one. ### For this Study Plan
+
+When I did the study plan, I used 2 languages for most of it: C and Python
+
+* C: Very low level. Allows you to deal with pointers and memory allocation/deallocation, so you feel the data structures
+    and algorithms in your bones. In higher-level languages like Python or Java, these are hidden from you. In day-to-day work, that's terrific,
+    but when you're learning how these low-level data structures are built, it's great to feel close to the metal.
+    - C is everywhere. You'll see examples in books, lectures, videos, *everywhere* while you're studying.
+    - [The C Programming Language, 2nd Edition](https://www.amazon.com/Programming-Language-Brian-W-Kernighan/dp/0131103628)
+        - This is a short book, but it will give you a great handle on the C language and if you practice it a little
+            you'll quickly get proficient. Understanding C helps you understand how programs and memory work.
+        - You don't need to go super deep in the book (or even finish it). Just get to where you're comfortable reading and writing in C.
+* Python: Modern and very expressive, I learned it because it's just super useful and also allows me to write less code in an interview.
+
+This is my preference. You do what you like, of course.
+

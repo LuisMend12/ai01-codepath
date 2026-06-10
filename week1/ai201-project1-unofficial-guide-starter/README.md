@@ -229,6 +229,50 @@ Two mechanisms work together. First, the model is instructed to add `[filename.t
 
 ---
 
+## Stretch Feature: Hybrid Search
+
+<!-- Run each of the 5 Evaluation Plan questions in both "Hybrid" and "Semantic only"
+     mode (toggle in the Gradio UI) and record what changed. -->
+
+**Approach:**
+
+The app builds a `BM25Okapi` keyword index over the same chunks stored in ChromaDB
+(pulled via `collection.get()` at startup — no separate index file). For each query,
+two ranked lists are computed:
+
+- **Semantic:** top-15 chunks by cosine similarity from ChromaDB
+- **Keyword (BM25):** top-15 chunks by BM25 score over tokenized chunk text
+
+These are combined with **Reciprocal Rank Fusion** (`score = Σ 1 / (60 + rank + 1)`
+across both lists), and the fused top-5 are passed to the LLM. RRF is used instead of
+a weighted score blend because BM25 scores and cosine distances aren't on comparable
+scales — RRF only needs each retriever's ranking. The Gradio UI has a "Retrieval mode"
+toggle (Hybrid / Semantic only) so the same question can be compared side-by-side, and
+each retrieved source is tagged with `(matched via: semantic)`, `(matched via: keyword)`,
+or `(matched via: keyword+semantic)`.
+
+**Comparison results:**
+
+| # | Question | Semantic-only sources | Hybrid sources | Answer changed? | Notes |
+|---|----------|------------------------|-----------------|------------------|-------|
+| 1 | | | | | |
+| 2 | | | | | |
+| 3 | | | | | |
+| 4 | | | | | |
+| 5 | | | | | |
+
+**Which performed better, and why:**
+
+<!-- Fill in after running both modes. Look specifically for:
+     - Queries containing exact jargon (e.g. "two-pointer", "FAANG", a company name)
+       where BM25 likely surfaced a chunk semantic search ranked lower
+     - Queries that are paraphrases of document language, where semantic search
+       likely outperforms BM25
+     - Whether the fused top-5 ever dropped a chunk that semantic-only retrieval
+       had ranked highly, and whether that hurt the answer -->
+
+---
+
 ## Spec Reflection
 
 <!-- Reflect on how planning.md shaped your implementation.

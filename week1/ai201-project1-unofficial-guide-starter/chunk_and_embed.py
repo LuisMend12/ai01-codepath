@@ -70,12 +70,16 @@ def _recursive_split(text: str, sep_idx: int, max_chars: int) -> list[str]:
         return [stripped] if stripped else []
 
     sep = _SEPARATORS[sep_idx]
-    parts = re.split(re.escape(sep), text)
+    raw_parts = re.split(re.escape(sep), text)
+    # re.split() consumes the separator. Re-attach it to the front of every
+    # part after the first so headings like "## Section" survive in the
+    # chunk text instead of being silently dropped.
+    parts = [raw_parts[0]] + [sep + p for p in raw_parts[1:]]
     chunks: list[str] = []
     current = ""
 
     for part in parts:
-        joined = (current + sep + part) if current else part
+        joined = current + part
         if len(joined) <= max_chars:
             current = joined
         else:
@@ -102,8 +106,12 @@ def _add_overlap(chunks: list[str], overlap_chars: int) -> list[str]:
         return chunks
     result = [chunks[0]]
     for i in range(1, len(chunks)):
-        prefix = chunks[i - 1][-overlap_chars:].strip()
-        result.append(prefix + " " + chunks[i] if prefix else chunks[i])
+        tail = chunks[i - 1][-overlap_chars:]
+        # Snap to the first whitespace so the overlap starts on a word
+        # boundary instead of mid-word (e.g. "...company-architectures)").
+        boundary = re.search(r"\s", tail)
+        prefix = tail[boundary.start():].strip() if boundary else ""
+        result.append(f"{prefix} {chunks[i]}" if prefix else chunks[i])
     return result
 
 

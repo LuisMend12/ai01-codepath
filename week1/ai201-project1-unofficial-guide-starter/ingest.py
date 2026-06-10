@@ -70,11 +70,42 @@ REDDIT_SOURCES = [
 
 # ── Cleaners ───────────────────────────────────────────────────────────────────
 
+# A markdown TOC entry: "- [Some Topic](#some-topic)" or "    * [Sub](#sub)"
+_TOC_LINE = re.compile(r'^[ \t]*[-*][ \t]+\[[^\]]+\]\(#[^)]+\)[ \t]*$')
+
+
+def _strip_toc_blocks(text: str, min_lines: int = 3) -> str:
+    """
+    Remove runs of 3+ consecutive table-of-contents link lines.
+    These are pure navigation — a chunk made entirely of "- [Topic](#anchor)"
+    lines has no explanatory content, only link names.
+    """
+    lines = text.split('\n')
+    out = []
+    i = 0
+    while i < len(lines):
+        if _TOC_LINE.match(lines[i]):
+            j = i
+            while j < len(lines) and (_TOC_LINE.match(lines[j]) or lines[j].strip() == ''):
+                j += 1
+            run = lines[i:j]
+            if sum(1 for l in run if _TOC_LINE.match(l)) >= min_lines:
+                i = j
+                continue
+        out.append(lines[i])
+        i += 1
+    return '\n'.join(out)
+
+
 def clean_github_markdown(text: str) -> str:
     """
     Remove elements that add noise without semantic value:
       - Badge links:  [![alt](img)](href)  and  ![alt](img)
       - HTML comments and inline HTML tags
+      - Centered image blocks (<p align="center"><img>...</p>) — diagram
+        captions with no value once the image itself is gone
+      - "Back to top" links repeated after every section
+      - Table-of-contents blocks (runs of "- [Topic](#anchor)" lines)
       - Markdown table separator rows (---|---|---)
       - Excessive blank lines (3+ → 2)
     """
@@ -84,10 +115,21 @@ def clean_github_markdown(text: str) -> str:
     text = re.sub(r'!\[.*?\]\(.*?\)', '', text)
     # HTML block comments
     text = re.sub(r'<!--.*?-->', '', text, flags=re.DOTALL)
-    # Inline HTML tags (e.g. <br>, <details>, <summary>)
-    text = re.sub(r'<[^>]+>', ' ', text)
+    # Centered image blocks — e.g. <p align="center"><img src="..."><br/></p>
+    text = re.sub(r'<p align="center">.*?</p>', '', text, flags=re.DOTALL)
+    # "Back to top" navigation links, e.g. **[⬆ back to top](#table-of-contents)**
+    text = re.sub(r'\*{0,2}\[⬆[^\]]*\]\([^)]*\)\*{0,2}', '', text)
+    # Inline HTML tags (e.g. <br>, <details>, <summary>). Anchored to
+    # "<" or "</" followed by a letter so bare "<"/">" used as math
+    # comparisons (e.g. "availability < 100%") aren't mistaken for tags
+    # and don't swallow everything up to the next literal ">".
+    text = re.sub(r'</?[a-zA-Z][^>]*>', ' ', text)
     # Markdown table alignment rows
     text = re.sub(r'^\|[-| :]+\|$', '', text, flags=re.MULTILINE)
+    # Table-of-contents blocks
+    text = _strip_toc_blocks(text)
+    # Strip trailing whitespace left behind by removed inline tags
+    text = re.sub(r'[ \t]+\n', '\n', text)
     # Collapse 3+ blank lines to 2
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
