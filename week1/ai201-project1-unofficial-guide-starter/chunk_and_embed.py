@@ -111,7 +111,14 @@ def _add_overlap(chunks: list[str], overlap_chars: int) -> list[str]:
         # boundary instead of mid-word (e.g. "...company-architectures)").
         boundary = re.search(r"\s", tail)
         prefix = tail[boundary.start():].strip() if boundary else ""
-        result.append(f"{prefix} {chunks[i]}" if prefix else chunks[i])
+        if not prefix:
+            result.append(chunks[i])
+        elif chunks[i].lstrip().startswith("#"):
+            # Next chunk opens with a heading — keep it on its own line
+            # instead of gluing it to the end of the overlap sentence.
+            result.append(f"{prefix}\n\n{chunks[i]}")
+        else:
+            result.append(f"{prefix} {chunks[i]}")
     return result
 
 

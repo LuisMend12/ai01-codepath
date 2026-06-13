@@ -117,7 +117,7 @@ The Reddit posts are conversational and paragraph-driven. Each paragraph typical
 
 The 200-character overlap addresses a common Reddit pattern: an engineer sets up context in one paragraph ("I bombed every Google loop for two years...") and delivers the actionable advice in the next. Without overlap, a chunk boundary at that seam yields two incomplete thoughts. 200 characters (~2 sentences) carries enough setup without duplicating large amounts of guide text across neighbors.
 
-**Final chunk count:** Run `python chunk_and_embed.py` — the script prints per-file chunk counts and a total at the end. (Fill this in after running.)
+**Final chunk count:** 70 chunks from the 3 GitHub guides currently in `documents/` (coding_interview_university: 34, system_design_primer: 29, tech_interview_handbook: 7). The 7 Reddit documents are pending (see Document Sources) — total will increase once they're added and `chunk_and_embed.py` is re-run.
 
 ---
 
@@ -298,8 +298,8 @@ or `(matched via: keyword+semantic)`.
 **Instance 1**
 
 - *What I gave the AI:* The Chunking Strategy section from planning.md (chunk size 1,600 chars / 200 char overlap, recursive boundary-aware splitting rationale, two-document-type reasoning) and the Architecture diagram showing the five pipeline stages.
-- *What it produced:* `chunk_and_embed.py` with `_recursive_split()` using the separator priority list `["\n## ", "\n### ", "\n\n", "\n", ". "]`, `_add_overlap()` that prepends the tail of the previous chunk, and a `main()` that drops and rebuilds the ChromaDB collection on each run.
-- *What I changed or overrode:* The initial draft used `text.split(sep)` which consumed the separator and silently dropped heading markers from chunk text. I changed it to `re.split(re.escape(sep), text)` and verified that H2 headings survived into their chunk's text so the embedding would include the section title.
+- *What it produced:* `chunk_and_embed.py` with `_recursive_split()` using the separator priority list `["\n## ", "\n### ", "\n\n", "\n", ". "]` and `_add_overlap()` that prepends the tail of the previous chunk, plus `clean_github_markdown()` in `ingest.py` for stripping badges, HTML comments, and inline tags from the GitHub READMEs.
+- *What I changed or overrode:* The Milestone 3 checkpoint (printing and inspecting 5 random chunks) caught three bugs the first pass missed. (1) `re.split(re.escape(sep), text)` discards the separator string itself, so whenever a new chunk happened to *start* at a heading, the `## `/`### ` marker was silently dropped — I had it re-attach the separator to the front of every part after the first. (2) `_add_overlap()` sliced the previous chunk's last 200 characters with a raw `[-200:]` index, which regularly cut mid-word (e.g. produced fragments like `"mpany-architectures)"`) — I had it snap forward to the next whitespace boundary instead. (3) The generic HTML-tag regex `<[^>]+>` matched bare `<`/`>` used as math comparisons in the system-design-primer (`"availability < 100%"`) and greedily deleted everything up to the next literal `>`, which silently erased an entire "In parallel" subsection — I narrowed it to `</?[a-zA-Z][^>]*>` so it only matches real tags. I also added `_strip_toc_blocks()` to remove runs of `- [Topic](#anchor)` link lines, which were otherwise producing chunks with zero narrative content.
 
 **Instance 2**
 

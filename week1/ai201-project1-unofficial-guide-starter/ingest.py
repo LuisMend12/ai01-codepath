@@ -117,6 +117,9 @@ def clean_github_markdown(text: str) -> str:
     text = re.sub(r'<!--.*?-->', '', text, flags=re.DOTALL)
     # Centered image blocks — e.g. <p align="center"><img src="..."><br/></p>
     text = re.sub(r'<p align="center">.*?</p>', '', text, flags=re.DOTALL)
+    # Superscript footnote markers, e.g. <sup><a href="...">1</a></sup> —
+    # stripping just the tags would leave an orphaned "1" in the prose.
+    text = re.sub(r'<sup>.*?</sup>', '', text, flags=re.DOTALL)
     # "Back to top" navigation links, e.g. **[⬆ back to top](#table-of-contents)**
     text = re.sub(r'\*{0,2}\[⬆[^\]]*\]\([^)]*\)\*{0,2}', '', text)
     # Inline HTML tags (e.g. <br>, <details>, <summary>). Anchored to
