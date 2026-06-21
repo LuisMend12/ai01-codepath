@@ -1,0 +1,66 @@
+{
+  "model": "llama-3.3-70b-versatile",
+  "label_map": {
+    "ask_hn": 0,
+    "show_hn": 1,
+    "story": 2
+  },
+  "test_set_size": 41,
+  "unparseable_responses": 0,
+  "accuracy": 0.8293,
+  "classification_report": {
+    "ask_hn": {
+      "precision": 0.9090909090909091,
+      "recall": 0.7692307692307693,
+      "f1-score": 0.8333333333333334,
+      "support": 13.0
+    },
+    "show_hn": {
+      "precision": 0.8333333333333334,
+      "recall": 0.7142857142857143,
+      "f1-score": 0.7692307692307693,
+      "support": 14.0
+    },
+    "story": {
+      "precision": 0.7777777777777778,
+      "recall": 1.0,
+      "f1-score": 0.875,
+      "support": 14.0
+    },
+    "accuracy": 0.8292682926829268,
+    "macro avg": {
+      "precision": 0.8400673400673401,
+      "recall": 0.8278388278388279,
+      "f1-score": 0.8258547008547009,
+      "support": 41.0
+    },
+    "weighted avg": {
+      "precision": 0.8383838383838383,
+      "recall": 0.8292682926829268,
+      "f1-score": 0.8256722951844903,
+      "support": 41.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      10,
+      2,
+      1
+    ],
+    [
+      1,
+      10,
+      3
+    ],
+    [
+      0,
+      0,
+      14
+    ]
+  ],
+  "confusion_matrix_labels": [
+    "ask_hn",
+    "show_hn",
+    "story"
+  ]
+}

@@ -1,0 +1,8 @@
+text,true_label,predicted_label
+"Developer APIs for parsing and tailoring CVS Currently, we support individual developers, and we are planning to support Teams and Organizations when we get funding. For Templates, we support specific templates for response, and we are working on supporting user templates for the preferred response of a parsed resume. The usage is being tracked, and we use API keys as an auth layer. The limits are currently guarded via token usage, and we are also planning to support BYOK model, so developers will use their keys and preferred models with small fees for service. check: https://civify.cv",ask_hn,show_hn
+1pager: Fixing the AI verbosity problem,show_hn,story
+"Anthropic pauses credit change for Claude Code Quoting from an email they sent: Hi Fabian, In May, we sent you an email announcing that starting today, the Claude Agent SDK, claude -p, and third-party apps built on the Agent SDK would stop drawing from subscription rate limits and move to a dedicated monthly credit. We're writing to let you know that we’re not making this change today. We’re working to update the plan to better support how users build with Claude subscriptions. What this means for you Nothing changes for now. Agent SDK, claude -p, and third-party app usage continues to work wi",ask_hn,story
+AgentArk – open-source self-hosted AI agent OS,show_hn,story
+Low-latency NLP news pipeline written on FASM and Python,ask_hn,show_hn
+Can you draw a 3 wheeled bicycle?,show_hn,ask_hn
+HackerFlow – Hacker News Client for Android Which Looks Like Reddit,show_hn,story

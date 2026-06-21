@@ -1,0 +1,65 @@
+{
+  "model": "distilbert-base-uncased",
+  "label_map": {
+    "ask_hn": 0,
+    "show_hn": 1,
+    "story": 2
+  },
+  "test_set_size": 41,
+  "accuracy": 0.6829,
+  "classification_report": {
+    "ask_hn": {
+      "precision": 0.6470588235294118,
+      "recall": 0.8461538461538461,
+      "f1-score": 0.7333333333333333,
+      "support": 13.0
+    },
+    "show_hn": {
+      "precision": 0.625,
+      "recall": 0.7142857142857143,
+      "f1-score": 0.6666666666666666,
+      "support": 14.0
+    },
+    "story": {
+      "precision": 0.875,
+      "recall": 0.5,
+      "f1-score": 0.6363636363636364,
+      "support": 14.0
+    },
+    "accuracy": 0.6829268292682927,
+    "macro avg": {
+      "precision": 0.7156862745098039,
+      "recall": 0.6868131868131867,
+      "f1-score": 0.6787878787878787,
+      "support": 41.0
+    },
+    "weighted avg": {
+      "precision": 0.7173601147776184,
+      "recall": 0.6829268292682927,
+      "f1-score": 0.6774575018477457,
+      "support": 41.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      11,
+      1,
+      1
+    ],
+    [
+      4,
+      10,
+      0
+    ],
+    [
+      2,
+      5,
+      7
+    ]
+  ],
+  "confusion_matrix_labels": [
+    "ask_hn",
+    "show_hn",
+    "story"
+  ]
+}

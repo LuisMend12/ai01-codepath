@@ -1,0 +1,19 @@
+# Environment
+.env
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Trained model checkpoints (large binaries)
+takemeter-model/
+
+# OS
+.DS_Store
+Thumbs.db

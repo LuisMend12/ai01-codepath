@@ -1,0 +1,14 @@
+text,true_label,predicted_label,confidence
+Student Cheating Is Becoming Impossible to Detect in an A.I. Era,story,ask_hn,0.4266
+Windows UI evolution: Clicking an unassociated file,story,show_hn,0.4318
+Don't rely on instructions; use Agent Hooks to enforce guardrails,story,ask_hn,0.3768
+"Didon – AI workday reports for productivity analysis As an indie engineer, I wanted some real feedback on my productivity, like having an actual external boss. I tried using time trackers (even a physical timer), but they weren't good at tracking everything. So I built Didon, an AI time tracker that watches the screen periodically and generates work logs, then summarizes them into your workday report.",show_hn,ask_hn,0.5035
+Scion: A next-generation inter-domain routing architecture,story,show_hn,0.3758
+Open Ralph Wiggum – Autonomous Agentic Loop,story,show_hn,0.3694
+What do you do to make LLMs determine,ask_hn,story,0.3543
+OpenMontage: Turn your AI coding assistant into a full video production studio,story,show_hn,0.4272
+FFmpegKit NDK r26c patch and maintained Android fork,story,show_hn,0.4223
+Low-latency NLP news pipeline written on FASM and Python,ask_hn,show_hn,0.4124
+Can you draw a 3 wheeled bicycle?,show_hn,ask_hn,0.5209
+A News Data Visualizer Visualization of news stories across various outlets. It links to a recent senate case because that's a good representation. No company behind this just for fun.,show_hn,ask_hn,0.4706
+"Self-hostable academic paper manager (linxiv) Hi all, I wanna show off and ask for feedback on my project linXiv, this started as auto-tagging knowledge graph mini-project, is now a ""full-stack"" research tool for storing and managing academic papers, locally, It fetches papers by arXiv ID or search, stores everything in sqllite. I just finished my Master's and while waiting to hear back from jobs and PhD programs I wanted to build something of my own for once. Because I usually try to find the newest version of a paper on arXiv first, I chose to make linXiv treat arXiv as the primary source to",show_hn,ask_hn,0.5543
