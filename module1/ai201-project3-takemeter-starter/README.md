@@ -16,7 +16,8 @@ ai201-project3-takemeter-starter/
 │   ├── label_dataset.py           # Clean text, assign labels, flag borderline cases
 │   ├── train.py                   # Fine-tune DistilBERT locally (CPU), evaluate on test set
 │   ├── groq_baseline.py           # Zero-shot classification with llama-3.3-70b-versatile
-│   └── evaluate.py                # Combine both models' results into a comparison
+│   ├── evaluate.py                # Combine both models' results into a comparison
+│   └── sample_predictions.py      # Per-example prediction + confidence (for README samples)
 ├── results/
 │   ├── confusion_matrix.png               # Fine-tuned model, test set
 │   ├── finetuned_results.json             # Fine-tuned metrics
@@ -51,6 +52,7 @@ python scripts/label_dataset.py    # -> data/labeled_dataset.csv, data/flagged_f
 python scripts/train.py            # -> data/{train,val,test}.csv, results/finetuned_*
 python scripts/groq_baseline.py    # -> results/baseline_*
 python scripts/evaluate.py         # -> results/comparison.json
+python scripts/sample_predictions.py  # -> per-example prediction + confidence (stdout)
 ```
 
 ---
@@ -166,6 +168,20 @@ Rows = true label, columns = predicted label, order `[ask_hn, show_hn, story]`.
 | **show_hn** | 1 | 10 | 3 |
 | **story** | 0 | 0 | 14 |
 
+### Sample Classifications
+
+Five test-set posts run through the fine-tuned model (`scripts/sample_predictions.py`), with predicted label and confidence:
+
+| Post (truncated) | True label | Predicted | Confidence |
+|---|---|---|---|
+| "Should AI be used at all as a total beginner? I aspire to be a game developer..." | `ask_hn` | `ask_hn` | 0.770 |
+| "What's your multi-agent orchestration setup, and success rate with it?..." | `ask_hn` | `ask_hn` | 0.741 |
+| "Jumpjet — a WASM runtime for game developers I built Jumpjet because..." | `show_hn` | `show_hn` | 0.475 |
+| "The Scoundrel Who Steals Fruit and Apologizes Insincerely Is Having a Bad Day" | `story` | `story` | 0.366 |
+| "Can you draw a 3 wheeled bicycle?" | `show_hn` | `ask_hn` | 0.521 |
+
+The first row is a clean, high-confidence correct call: the post opens with a direct question ("Should AI be used at all...") and is framed entirely around the OP soliciting opinions for themselves, which is exactly the lexical pattern (interrogative framing, no first-person "I built") the model learned to associate with `ask_hn`. The last row is the same "3 wheeled bicycle" miss analyzed below — flagged here again because it's a useful contrast: a `show_hn` post with no "I built/made" framing gets pulled toward `ask_hn` purely because it's phrased as a question.
+
 ### Error Analysis
 
 **1. Fine-tuned model: `"Scion: A next-generation inter-domain routing architecture"` — true `story`, predicted `show_hn` (confidence 0.376, the lowest-confidence error in the whole set).**
@@ -187,3 +203,18 @@ We intended both models to learn the **structural distinction** HN's own submiss
 What the **fine-tuned model** actually learned, with only 63 examples per class, looks more like a shallow lexical proxy for that distinction: first-person verbs ("I built," "I made") strongly predict `show_hn` (it had no trouble with `linxiv`-style posts once that framing was present), and the *absence* of obvious self-referential or question framing tends to fall back to whichever class is lexically closest, which is why `story` was confused most often: its precision was higher than its recall (0.50), meaning the model under-predicts `story` — it's “too eager” to call ambiguous, plainly-worded technical headlines `show_hn` instead. The relatively small, capped (90/label) training set is almost certainly why: DistilBERT didn't see enough lexical variety within `story` to learn that "plain technical headline with no self-reference" is its dominant pattern, rather than an edge case.
 
 The **zero-shot Groq baseline** outperforming a fine-tuned model is the most notable result here, and it makes sense given the dataset size: a 70B-parameter model already has a rich prior over what "someone asking a question" vs. "someone announcing their own project" vs. "a news headline" sound like, built from vastly more text than 189 fine-tuning examples could ever provide. Its one clear failure mode (`ask_hn` → `story` when no question mark/interrogative is present, as in the Anthropic-email example) shows it's leaning on roughly the same shallow "is this a question" heuristic as DistilBERT, but its much larger pretraining prior makes that heuristic correct far more often. Both models converge on the same kind of mistake when a post defies the typical phrasing for its category (the "3 wheeled bicycle" example) — which suggests the actual remaining difficulty isn't model capacity, it's that a meaningful minority of real HN posts are genuinely ambiguous between two categories, not cleanly separable by either model.
+
+## Spec Reflection
+
+**Where the spec helped:** The notebook's recommended workflow (lock the test set before touching the baseline, run the baseline *before* fine-tuning, reuse the exact same test split for both models) forced an evaluation discipline that directly explains our most interesting finding. If we'd evaluated each model on a different split, we couldn't have trusted the 0.829-vs-0.683 accuracy gap as a real signal rather than split noise — the spec's insistence on a single locked test set is what makes the "baseline beat fine-tuning" result credible instead of suspicious.
+
+**Where we diverged, and why:** The spec assumes Google Colab with a T4 GPU (`per_device_train_batch_size=16`, 5–15 minute training). We instead ran the entire pipeline locally on CPU via standalone scripts (`scripts/train.py`) rather than the provided notebook, for two reasons: Reddit's API access changed mid-project (see "Community and Why It Changed"), which meant rebuilding the data-collection step from scratch, and at that point it was faster to keep the whole pipeline in version-controlled, re-runnable scripts than to re-do collection inside a notebook cell. The concrete consequence was halving the batch size to 8 to keep CPU memory/compute bounded — documented in `scripts/train.py` — which had no real effect on convergence at this dataset size (~24 steps/epoch either way) but is the one place our setup doesn't match the spec's defaults.
+
+## AI Usage
+
+We used **Claude Code** (Claude, Anthropic) as the implementation assistant throughout this project. Two specific instances:
+
+1. **Directed it to write the data collection and labeling scripts** (`scrape_hn.py`, `label_dataset.py`) after we'd already decided HN's own `/ask`/`/show`/story tag pools would be our labels. Claude's first draft of `label_dataset.py` labeled posts directly with no shortcut-avoidance step; we asked it to add the prefix-stripping logic ourselves once we noticed the literal `"Ask HN:"` / `"Show HN:"` string would let any model "solve" the task by substring match instead of learning anything about discourse style — that's the `clean_title()` step and the "Anti-shortcut decision" documented above. We also asked it to add the `is_borderline()` heuristic and `flagged_for_review.csv` output so we could manually audit cases where a post's *platform* label looked wrong given its *surface phrasing* — the three "Difficult to Label" examples above came out of manually reviewing that flagged file, not from Claude's judgment.
+2. **Directed it to write the training, baseline, and comparison scripts** (`train.py`, `groq_baseline.py`, `evaluate.py`, and later `sample_predictions.py` to pull confidence scores for the Sample Classifications table) and to help review `wrong_predictions_finetuned.csv` for patterns. Its first pass at the Reflection section over-generalized ("the model can't distinguish self-promotion from news"); we narrowed that to the specific, verifiable claim that holds up against all 13 misclassified examples — that the model leans on first-person "I built/made" framing as a proxy for `show_hn` and under-predicts `story` in its absence — by re-reading each misclassified example ourselves rather than accepting the first summary.
+
+**No LLM was used to pre-label training examples.** Every label in `labeled_dataset.csv` comes directly from which Algolia API tag pool a post was scraped from (a structural fact about the post, not a judgment call), so there was no annotation step for an LLM to assist with — see the AI Tool Plan in `planning.md` for why we made that call.

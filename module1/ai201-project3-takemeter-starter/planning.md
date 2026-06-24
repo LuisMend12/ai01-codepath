@@ -26,6 +26,35 @@ HN's own submission mechanism splits every post into one of three structural cat
 
 `scripts/label_dataset.py` heuristically flags posts whose phrasing cuts against their platform-assigned label (e.g. a `story` post whose title is itself a question) into `data/flagged_for_review.csv`. We manually reviewed all of these — see README.md's "Difficult to Label" section for the specific examples and what we decided (in short: we kept the platform's label in every case we checked, because the underlying *structural* signal — text-only ask vs. linked third-party content vs. linked own-work — held up even when the title's surface phrasing looked like a different category).
 
+## Data Collection Plan
+
+**Source:** `scripts/scrape_hn.py` pulls from the Algolia HN Search API (`hn.algolia.com/api/v1/search_by_date`) — public, unauthenticated, no rate limit, full historical depth. We pull the 300 most recent posts under each of the `ask_hn` and `show_hn` tags, plus 300 under the general `story` tag (minus any that double-tagged as `ask_hn`/`show_hn`).
+
+**Per-label target:** Since the label comes directly from which Algolia tag pool a post was pulled from (not a subjective judgment call), the collection step itself can't introduce label noise — the only thing we control is the *count* per label. We targeted enough raw volume per tag to comfortably cap at 90/label (270 total) after dropping anything under 15 characters post-cleaning.
+
+**If a label is underrepresented:** `ask_hn` and `show_hn` are inherently rarer on HN than plain `story` submissions (most of the front page is link-sharing), so the risk is the opposite of the usual case — too few raw `ask_hn`/`show_hn` posts, not too many. If after capping `story` to 90 either `ask_hn` or `show_hn` came in under 90, the plan was to widen the Algolia date window (pull further back in time) for just that tag, since the API has no rate limit and full history — there is no need to ever resort to a synthetic/duplicated example to hit the count.
+
+## Evaluation Metrics
+
+We report **overall accuracy** for both models as the top-line comparison number, but accuracy alone is not enough here: with three roughly-balanced classes, two models can post similar accuracy while failing in completely different, asymmetric ways. We therefore also report:
+
+- **Per-class precision, recall, and F1** — this is the metric that actually surfaces which boundary a model hasn't learned. In our results, the fine-tuned model's `story` recall (0.50) is far below its precision (0.875), meaning it systematically *under*-predicts `story` — a fact totally invisible in the 0.683 accuracy number alone.
+- **Confusion matrix** — shows the *direction* of confusion (e.g., `story` predicted as `show_hn` far more often than the reverse), which is more actionable than a precision/recall table alone because it points at which specific label pair needs more/cleaner training examples.
+
+Accuracy answers "how often is the model right." Per-class F1 and the confusion matrix answer "right about what, and wrong in which direction" — for a task whose entire point is distinguishing three specific categories from each other, the second question matters more.
+
+## Definition of Success
+
+For this to be "genuinely useful" as a real triage tool (e.g., auto-routing submissions or flagging mislabeled ones), we set the bar at: fine-tuned accuracy meaningfully above the 33% random-guess floor for a 3-class task, and every per-class F1 ≥ 0.70 (the course's own "model is learning all distinctions well" threshold). "Good enough for deployment" would additionally require the fine-tuned model to beat the zero-shot baseline — if a free, untrained prompt already does the job, fine-tuning isn't earning its complexity for a real tool.
+
+These criteria are specific enough to grade objectively against our actual results (see Evaluation Report in the README): the fine-tuned model reached 0.683 accuracy with one class (`story`, F1 0.636) below the 0.70 bar, and it did **not** beat the baseline (0.829). By our own definition, this model is not yet good enough for deployment — see the Reflection section in the README for why, and what we'd change with more data.
+
+## AI Tool Plan
+
+- **Label stress-testing:** Skipped a separate synthetic stress-test step because our taxonomy isn't built from subjective judgment calls — it's derived directly from HN's own submission mechanism (the `/ask`, `/show` tag pools), so the "edge cases" that matter are real posts where the *platform's* label looks wrong given the title's surface phrasing (see Difficult Cases below and `flagged_for_review.csv`), not hypothetical AI-generated boundary posts.
+- **Annotation assistance:** Not used. Labels are assigned deterministically from which Algolia API tag a post was pulled under (`scripts/label_dataset.py`), not from an LLM or human judgment call on each post — there is nothing for an LLM to pre-label, since the ground truth is structural rather than subjective. (Discrepancies between the structural label and surface phrasing were instead handled by the borderline-flagging heuristic and manual review described below.)
+- **Failure analysis:** Used Claude (via Claude Code) to help write `scripts/scrape_hn.py`, `label_dataset.py`, `train.py`, `groq_baseline.py`, and `evaluate.py`, and to review the resulting `wrong_predictions_finetuned.csv` for patterns before writing the Reflection section in the README. We verified the suggested pattern (the model leans on first-person "I built/made" framing as a proxy for `show_hn`, and under-predicts `story` when a post lacks any first-person or question framing) by re-reading every one of the 13 misclassified test examples ourselves — see the README's Error Analysis and Reflection sections for the verified conclusions, and the README's AI Usage section for specifics on what we directed the AI to do and what we changed.
+
 ## Pipeline
 
 1. `scripts/scrape_hn.py` — pulls raw posts from the Algolia HN Search API into `data/raw_posts.csv`.
