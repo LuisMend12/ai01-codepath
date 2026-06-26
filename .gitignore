@@ -1,1 +1,3 @@
 module1/.env
+**/checkpoint-*/model.safetensors
+**/checkpoint-*/optimizer.pt
