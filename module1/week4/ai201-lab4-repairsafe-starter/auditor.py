@@ -1,7 +1,11 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from config import LOG_FILE
+
+QUESTION_LIMIT = 300
+PREVIEW_LIMIT = 200
+CONSOLE_QUESTION_LIMIT = 60
 
 
 def log_interaction(question: str, tier: str, response: str) -> None:
@@ -31,4 +35,31 @@ def log_interaction(question: str, tier: str, response: str) -> None:
 
     Design your log entry in specs/auditor-spec.md before implementing here.
     """
-    pass
+    record = {
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "tier": tier,
+        "question": question[:QUESTION_LIMIT],
+        "response_preview": response[:PREVIEW_LIMIT],
+        # Added fields (see specs/auditor-spec.md): help diagnose clusters of
+        # misclassified questions without re-deriving anything from the raw text.
+        "question_chars": len(question),
+        "response_truncated": len(response) > PREVIEW_LIMIT,
+    }
+
+    # Create logs/ if it doesn't exist yet — logging must never crash the pipeline.
+    log_dir = os.path.dirname(LOG_FILE)
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+
+    # JSONL: one complete JSON object per line. json.dumps (not json.dump with
+    # indent=) keeps each record on a single line so log tools can parse it.
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+    # One-line terminal summary, e.g.:
+    # [LOGGED] tier=caution | "How do I replace a bathroom faucet?" -> 512 chars
+    # ASCII-only ("->", "...") so it never crashes on a cp1252 Windows console.
+    short_q = question.replace("\n", " ")
+    if len(short_q) > CONSOLE_QUESTION_LIMIT:
+        short_q = short_q[:CONSOLE_QUESTION_LIMIT] + "..."
+    print(f'[LOGGED] tier={tier} | "{short_q}" -> {len(response)} chars')

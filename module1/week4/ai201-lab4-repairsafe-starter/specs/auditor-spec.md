@@ -1,7 +1,7 @@
 # Spec: `log_interaction()`
 
 **File:** `auditor.py`
-**Status:** Spec incomplete — fill in all blank fields before implementing
+**Status:** Complete
 
 ---
 
@@ -27,15 +27,16 @@ Record every interaction — question, safety tier, and response preview — to 
 
 ## Design Decisions
 
-*Complete the fields below before writing any code.*
-
 ---
 
 ### Log entry fields
 
-*The four required fields are already in the table below. Add at least two more that you think a developer reviewing this log would actually need.*
-
-*Think about what you'd want to see if you discovered a cluster of 200 logged questions where the classifier was consistently wrong. What's missing from just the four required fields that would help you diagnose it?*
+*Four required fields plus two added for diagnosability. The added fields answer the
+"200 questions misclassified" scenario: to diagnose a cluster you need to know how
+long each question was (`question_chars` — were the bad ones the long, rambling
+ones?) and whether the stored text was truncated (`response_truncated` — so you don't
+mistake a cut-off preview for the model actually stopping there). Together they let
+you filter and group without re-deriving anything from the raw text.*
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -43,53 +44,72 @@ Record every interaction — question, safety tier, and response preview — to 
 | `"tier"` | `str` | Safety tier assigned to this question |
 | `"question"` | `str` | The user's question, truncated to 300 characters |
 | `"response_preview"` | `str` | First 200 characters of the generated response |
-| `[your field]` | `[type]` | [description] |
-| `[your field]` | `[type]` | [description] |
+| `"question_chars"` | `int` | Full length of the original question before truncation — lets you spot whether misclassified questions cluster by length |
+| `"response_truncated"` | `bool` | `True` if the full response was longer than the 200-char preview — so a clipped preview is never mistaken for a short answer |
 
 ---
 
 ### Why these truncation limits?
 
-*The required fields truncate the question to 300 characters and the response to 200. Write down the reasoning for each — what would you lose by truncating more aggressively, and what's the risk of logging the full text at production scale?*
-
 ```
-[your answer here]
+300 chars on the question keeps essentially every real repair question intact (most
+are one or two sentences) while capping pathological paste-bombs, so the log stays
+greppable and one-line-per-record. 200 chars on the response is enough to see the
+opening — which tier-shaped behavior the model chose (full how-to vs. warning vs.
+refusal) — which is what you audit for; the full answer would multiply log size with
+detail you rarely need at review time.
+
+Truncating more aggressively (say 50 chars) would lose the boundary cues you actually
+use: "How do I add a new outlet to my garage, and also..." vs. the start of a refusal
+both look the same in 50 chars. Logging full text at production scale is the opposite
+risk: storage/PII exposure grows with no review benefit, and full user text is more
+sensitive to retain. question_chars + response_truncated recover the "was there more?"
+signal without storing it all.
 ```
 
 ---
 
 ### Directory creation
 
-*What happens if `logs/` doesn't exist when the function runs for the first time? How will you handle that — and why is this worth thinking about at all?*
-
 ```
-[your answer here]
+On the first run logs/ may not exist (it's empty except .gitkeep, and a fresh checkout
+or a different working dir can leave it absent), so an unguarded open() would raise
+FileNotFoundError and crash the request. Before opening the file, derive the parent
+directory from LOG_FILE and call os.makedirs(dir, exist_ok=True) — idempotent, so it's
+a no-op when the directory already exists. This matters because logging must never be
+the thing that takes down a working classify→respond pipeline.
 ```
 
 ---
 
 ### Console output
 
-*Write an example of what you want the one-line terminal summary to look like after a question is logged. Be specific about format.*
-
 ```
-[your example output here]
+[LOGGED] tier=caution | "How do I replace a bathroom faucet?" -> 512 chars
+
+Format: literal "[LOGGED]" tag, a space, "tier=" + tier, " | ", the question in double
+quotes (itself truncated to ~60 chars + "..." so the line stays readable), " -> ", the
+FULL response length in chars, then "chars". ASCII-only arrow "->" and "..." so the
+summary never crashes on a cp1252 Windows console (the JSONL file is written UTF-8).
 ```
 
 ---
 
 ## Implementation Notes
 
-*Fill this in after implementing.*
-
 **The actual log file content after 3 test queries (paste the three JSON lines):**
 
 ```
-[your answer here]
+{"timestamp": "2026-06-26T01:59:01.418401Z", "tier": "safe", "question": "How do I patch a small hole in drywall?", "response_preview": "Patching a small hole in drywall is a relatively simple process that can be completed with a few basic tools and materials. Here's a step-by-step guide:\n\n**Materials needed:**\n\n* Drywall patch (or a s", "question_chars": 39, "response_truncated": true}
+{"timestamp": "2026-06-26T01:59:04.418839Z", "tier": "caution", "question": "How do I replace a bathroom faucet?", "response_preview": "Replacing a bathroom faucet can be a bit of a challenge, but with the right guidance, you can do it yourself. However, please exercise caution and prioritize your safety throughout the process. \n\n**Be", "question_chars": 35, "response_truncated": true}
+{"timestamp": "2026-06-26T01:59:05.507888Z", "tier": "refuse", "question": "How do I fix a gas line that smells like it's leaking?", "response_preview": "A gas line leak is a serious and potentially life-threatening situation. If not handled properly, it can lead to explosion, fire, or asphyxiation. The smell of leaking gas indicates a potential hazard", "question_chars": 54, "response_truncated": true}
 ```
 
 **One field you'd add to the log if this were a real production system handling 10,000 questions per day:**
 
 ```
-[your answer here]
+A per-request "request_id" (UUID) — at 10k/day you need to join a log line to the
+exact user session, support ticket, or trace when someone reports a bad answer, and to
+deduplicate retries. (Close runners-up: "latency_ms" to catch model slowdowns, and
+"model" so you can attribute a behavior shift to a model/version change.)
 ```
