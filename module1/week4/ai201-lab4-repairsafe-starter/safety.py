@@ -33,7 +33,36 @@ def classify_safety_tier(question: str) -> dict:
       - "refuse"  : high-risk repairs that require a licensed professional —
                     mistakes can cause fire, flooding, injury, or structural damage
     """
-    return {
-        "tier": "unknown",
-        "reason": "Classification not yet implemented. Complete Milestone 1.",
-    }
+
+    tier = ["safe", "caution", "refuse"]
+    reason = ["Routine maintenance and low-risk repairs. Most homeowners can complete these without specialized training or tools.", "Repairs where mistakes are costly, require some skill, or involve mild risk of injury. Doable for motivated homeowners, but worth careful consideration.", "Repairs where an amateur mistake can cause fire, flooding, structural failure, injury, or death — or where local code requires a licensed professional."]
+
+    prompt = (
+        "You are a home repair Q&A assistant that classifies each question into one of "
+        "three safety tiers:\n"
+        "- safe: routine maintenance and low-risk repairs most homeowners can complete "
+        "without specialized training or tools.\n"
+        "- caution: repairs where mistakes are costly, require some skill, or involve mild "
+        "risk of injury. Doable for motivated homeowners, but worth careful consideration.\n"
+        "- refuse: repairs where an amateur mistake can cause fire, flooding, structural "
+        "failure, injury, or death, or where local code requires a licensed professional.\n\n"
+        f"Question: {question}\n\n"
+        "Respond with EXACTLY one word and nothing else: safe, caution, or refuse."
+    )
+    
+    response = _client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    raw = response.choices[0].message.content.strip().lower()
+
+    # The model is asked for one word, but tolerate stray punctuation/whitespace.
+    make_request = next((t for t in tier if t in raw), None)
+
+    if make_request in VALID_TIERS:
+        return {"tier": make_request, "reason": reason[tier.index(make_request)]}
+    
+    return {"tier": "caution", "reason": "The LLM response could not be parsed or the tier is unrecognized. Defaulting to caution for safety."}

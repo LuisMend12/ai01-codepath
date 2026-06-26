@@ -1,5 +1,5 @@
 from groq import Groq
-from config import GROQ_API_KEY, LLM_MODEL
+from config import GROQ_API_KEY, LLM_MODEL, VALID_TIERS
 
 _client = Groq(api_key=GROQ_API_KEY)
 
@@ -33,4 +33,20 @@ def generate_safe_response(question: str, tier: str) -> str:
 
     Return the response as a plain string.
     """
-    return "⚙️ Response generation not yet implemented. Complete Milestone 2 to activate answers."
+    prompt = (
+        "You are a home repair Q&A assistant that answers questions based on their "
+        f"safety tier. The question is classified as '{tier}'.\n\n"
+        f"Question: {question}\n\n"
+        "Respond with a clear, concise answer appropriate for the safety tier."
+    )
+
+    response = _client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    if response in VALID_TIERS:
+        return response.choices[0].message.content.strip()
+    return "Refuse, Please hire a licensed professional for this repair. It is too dangerous to attempt without proper training and equipment."

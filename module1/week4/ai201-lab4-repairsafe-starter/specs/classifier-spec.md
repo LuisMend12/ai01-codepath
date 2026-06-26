@@ -40,17 +40,17 @@ Determine whether a home repair question is safe to answer directly, requires a 
 
 **safe:**
 ```
-[your definition here]
+Routine maintenance and low-risk repairs. Most homeowners can complete these without specialized training or tools.
 ```
 
 **caution:**
 ```
-[your definition here]
+Repairs where mistakes are costly, require some skill, or involve mild risk of injury. Doable for motivated homeowners, but worth careful consideration.
 ```
 
 **refuse:**
 ```
-[your definition here]
+Repairs where an amateur mistake can cause fire, flooding, structural failure, injury, or death — or where local code requires a licensed professional.
 ```
 
 ---
@@ -62,7 +62,7 @@ Determine whether a home repair question is safe to answer directly, requires a 
 *Consider: what happens when a question is genuinely ambiguous — e.g., "can I replace my own outlets?" Which tier should that land in, and how does your approach handle questions at the boundary?*
 
 ```
-[your answer here]
+We define it into categories depending on factors such as if it is a low-risk repairs or routine maintanance, if it requires some skills or involves mild risk of injury, and if it requires a licensed professional.
 ```
 
 ---
@@ -74,7 +74,7 @@ Determine whether a home repair question is safe to answer directly, requires a 
 *The format you used in Lab 3 (`Label: X / Reasoning: Y`) is a reasonable starting point, but you're not required to use it. Whatever you choose, you'll need to parse it in code — so consider how much variation the LLM might introduce and how you'll handle that.*
 
 ```
-[your answer here]
+Label and reasoning
 ```
 
 ---
@@ -85,12 +85,12 @@ Determine whether a home repair question is safe to answer directly, requires a 
 
 **System message:**
 ```
-[your prompt here]
+You are a home repair Q&A assitant with three safety layers, safe, caution, and refuse. Your task is to assist with home repair advice. However, you have to consider if the user request is within one of these three tiers, safe, caution, and refuse. Safe is the user request involves routine maintenance and low-risk repairs which most homeowners can complete these without specialized training or tools. Caution if the user request involves Repairs where mistakes are costly, require some skill, or involve mild risk of injury. Doable for motivated homeowners, but worth careful consideration. And, refuse if the user request involves Repairs where an amateur mistake can cause fire, flooding, structural failure, injury, or death — or where local code requires a licensed professional.
 ```
 
 **User message:**
 ```
-[your prompt here]
+Can I replace an electrical outlet that stopped working?
 ```
 
 ---
@@ -100,7 +100,10 @@ Determine whether a home repair question is safe to answer directly, requires a 
 *The most consequential classification decision is whether a question lands in "caution" or "refuse." Write down your rule for this boundary — one sentence. Then give two examples of questions that sit close to the line and explain which side they fall on and why.*
 
 ```
-[your rule and examples here]
+"How do I replace an outlet that stopped working?"	caution	Existing circuit, same location, component swap — worst case is a tripped breaker
+
+
+"How do I add a new outlet to my garage?"	refuse	Requires opening the panel, running new wire, pulling a permit — amateur mistake = fire hazard discovered years later
 ```
 
 ---
@@ -112,7 +115,7 @@ Determine whether a home repair question is safe to answer directly, requires a 
 *Note: failing open (returning "safe" as a fallback) is more dangerous than failing closed (returning "caution"). Which makes more sense here, and why?*
 
 ```
-[your answer here]
+Our fallback should be between caution or refuse. if it is deciding between caution and safe, teh llm should pick caution, and if the llm is picking between caution and refuse, it should pick refuse.
 ```
 
 ---
@@ -124,7 +127,7 @@ Determine whether a home repair question is safe to answer directly, requires a 
 **One classification that surprised you — question, tier you expected, tier it returned, and why:**
 
 ```
-[your answer here]
+
 ```
 
 **One prompt change you made after seeing the first few outputs, and what it fixed:**

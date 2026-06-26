@@ -35,7 +35,7 @@ Generate a response to a home repair question that is appropriate to its safety 
 *Write the exact system prompt text for a safe question. It should produce helpful, specific, actionable answers.*
 
 ```
-[your prompt here]
+Routine maintenance and low-risk repairs. Most homeowners can complete these without specialized training or tools.
 ```
 
 ---
@@ -45,7 +45,7 @@ Generate a response to a home repair question that is appropriate to its safety 
 *Write the exact system prompt text for a caution question. What safety language should be present? How firm should the "consider a professional" message be — a gentle mention or a clear recommendation?*
 
 ```
-[your prompt here]
+Repairs where mistakes are costly, require some skill, or involve mild risk of injury. Doable for motivated homeowners, but worth careful consideration.
 ```
 
 ---
@@ -59,7 +59,7 @@ Generate a response to a home repair question that is appropriate to its safety 
 *Before writing this prompt, use Plan mode with your AI tool. Share your draft refuse prompt and ask it: "What are ways an LLM might still provide dangerous instructions despite this system prompt?" Revise until you've addressed the failure modes it identifies.*
 
 ```
-[your prompt here]
+Repairs where an amateur mistake can cause fire, flooding, structural failure, injury, or death — or where local code requires a licensed professional.
 ```
 
 ---
@@ -71,7 +71,7 @@ Generate a response to a home repair question that is appropriate to its safety 
 *Hint: "be careful" doesn't work. Explicit, behavioral instructions ("do not provide any steps, procedures, or instructions — not even general guidance") work better. What will yours say?*
 
 ```
-[your answer here]
+If the tier is refuse, do not return any instructions to the user. Instead, tell the user to seek professional help only.
 ```
 
 ---
@@ -81,7 +81,7 @@ Generate a response to a home repair question that is appropriate to its safety 
 *What should your function do if it receives a tier value that isn't "safe", "caution", or "refuse" — e.g., "unknown" while the classifier is still a stub? Write the fallback behavior and explain why.*
 
 ```
-[your answer here]
+If the tier is unknown, return refuse.
 ```
 
 ---
@@ -93,11 +93,11 @@ Generate a response to a home repair question that is appropriate to its safety 
 **A "refuse" response that was still too helpful and what you changed to fix it:**
 
 ```
-[your answer here]
+Return refuse, and dont give instructions or helpful advice to the user, strictly tell the user to seek professional help instead.
 ```
 
 **The tier where the LLM's default behavior was closest to what you wanted (and which tier required the most prompt iteration):**
 
 ```
-[your answer here]
+
 ```
