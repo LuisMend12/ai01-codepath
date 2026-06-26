@@ -1,3 +1,13 @@
-module1/.env
+# Environments
+.venv/
+**/.venv/
+.env
+**/.env
+
+# Model checkpoints
 **/checkpoint-*/model.safetensors
 **/checkpoint-*/optimizer.pt
+
+# Python
+__pycache__/
+*.pyc
