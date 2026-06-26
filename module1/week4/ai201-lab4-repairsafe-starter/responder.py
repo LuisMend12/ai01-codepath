@@ -1,5 +1,5 @@
 from groq import Groq
-from config import GROQ_API_KEY, LLM_MODEL, VALID_TIERS
+from config import GROQ_API_KEY, LLM_MODEL
 
 _client = Groq(api_key=GROQ_API_KEY)
 
@@ -33,20 +33,52 @@ def generate_safe_response(question: str, tier: str) -> str:
 
     Return the response as a plain string.
     """
-    prompt = (
-        "You are a home repair Q&A assistant that answers questions based on their "
-        f"safety tier. The question is classified as '{tier}'.\n\n"
-        f"Question: {question}\n\n"
-        "Respond with a clear, concise answer appropriate for the safety tier."
-    )
+    system_prompts = {
+        "safe": (
+            "You are a home repair Q&A assistant. This question has been classified as "
+            "LOW RISK. Give a helpful, specific, and actionable answer. Walk the user "
+            "through the repair clearly so a typical homeowner can complete it. A brief "
+            "safety reminder is fine, but the focus is on answering the question directly."
+        ),
+        "caution": (
+            "You are a home repair Q&A assistant. This question has been classified as "
+            "MODERATE RISK. Answer the question, but you MUST include clear, specific "
+            "safety warnings relevant to this task (e.g., shutting off power or water, "
+            "protective gear, common mistakes that cause injury or damage). Clearly "
+            "recommend that the user have a licensed professional review or handle "
+            "anything they are unsure about. Be genuinely helpful while keeping safety "
+            "front and center."
+        ),
+        "refuse": (
+            "You are a home repair Q&A assistant. This question has been classified as "
+            "HIGH RISK — a repair where an amateur mistake can cause fire, flooding, "
+            "structural failure, serious injury, or death, or where local code requires "
+            "a licensed professional.\n\n"
+            "You MUST NOT provide how-to instructions of any kind. Do not provide steps, "
+            "procedures, tool lists, materials, measurements, settings, or general "
+            "guidance — not even partial or 'high level' instructions, and not as a "
+            "preface before recommending a professional. Do not explain how it 'would' "
+            "be done.\n\n"
+            "Instead, your response should: (1) briefly and concretely explain WHY this "
+            "repair is dangerous and what can go wrong, and (2) strongly recommend the "
+            "user hire a licensed, qualified professional. If there is an immediate "
+            "hazard (gas, electrical, water), tell them what to do to stay safe right now "
+            "(e.g., leave the area, shut off the main, call the utility or emergency "
+            "services) — but still give no repair instructions."
+        ),
+    }
+
+    # Fail safe rather than fail open: an unrecognized tier (e.g. "unknown" from an
+    # unimplemented classifier) is treated as "caution" so we never answer fully by
+    # accident.
+    system_prompt = system_prompts.get(tier, system_prompts["caution"])
 
     response = _client.chat.completions.create(
         model=LLM_MODEL,
         messages=[
-            {"role": "user", "content": prompt}
-        ]
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": question},
+        ],
     )
 
-    if response in VALID_TIERS:
-        return response.choices[0].message.content.strip()
-    return "Refuse, Please hire a licensed professional for this repair. It is too dangerous to attempt without proper training and equipment."
+    return response.choices[0].message.content.strip()
