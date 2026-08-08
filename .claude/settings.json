@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(ls \"g:\\\\broswer download\\\\\" | Where-Object { $_.PSIsContainer } | Select-Object Name)",
+      "PowerShell(gh repo list LuisMend12 --limit 20 2>&1)",
+      "Bash(.venv/Scripts/pip install *)",
+      "Bash(.venv/Scripts/pytest tests/unit/test_orchestrator.py -v -m unit)"
+    ]
+  }
+}
